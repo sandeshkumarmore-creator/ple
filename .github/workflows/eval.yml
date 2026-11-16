@@ -1,0 +1,43 @@
+name: Kaggle AI Eval
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  run-exam:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Free Disk Space (40GB)
+        uses: endersonmenezes/free-disk-space@v4
+        with:
+          remove_android: true
+          remove_dotnet: true
+          remove_haskell: true
+          remove_tool_cache: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install UV & Harbor
+        run: |
+          pip install uv
+          uv tool install harbor==0.20.0 --with websockets
+
+      - name: Start Docker and AI Test
+        env:
+          MODEL_PROXY_URL: "https://generativelanguage.googleapis.com/v1beta/openai/"
+          MODEL_PROXY_KEY: ${{ secrets.GEMINI_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          uv run python eval/run.py sample_submissions/agy-gemini --tasks footing-settlement-verification
+
+      - name: Upload Result
+        uses: actions/upload-artifact@v4
+        with:
+          name: kaggle-artifacts
+          path: artifacts/
